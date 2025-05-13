@@ -1,0 +1,26 @@
+.env
+
+# Python
+./compliance_app/*/__pycache__/
+__pycache__/
+./venv/
+./.venv/
+./.env/
+./__pycache__/
+./*/__pycache__/
+./*/*/__pycache__/
+./*.pyc
+./*/*.pyc
+./*.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Log files
+*.log
