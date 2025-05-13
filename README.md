@@ -11,9 +11,7 @@ pip install gradio
 ```
 
 # Streamlit: 
-## Streamlit is an open-source Python library that makes it easy to create and share interactive web applications for 
-## data science and machine learning. Streamlit is designed for data scientists and AI/ML engineers to quickly build 
-## and deploy interactive data apps.
+## Streamlit is an open-source Python library that makes it easy to create and share interactive web applications for data science and machine learning. Streamlit is designed for data scientists and AI/ML engineers to quickly build and deploy interactive data apps.
 ```
 pip install streamlit
 ```
