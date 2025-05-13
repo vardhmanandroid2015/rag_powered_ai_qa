@@ -2,8 +2,13 @@
 1. Clone the repo git clone https://gitlab.com/beyond_the_technology/rag_powered_ai_agent.git
 2. Create virtual environment for Window users ``` python -m venv .venv && .\.venv\Scripts\activate```
 3. Install dependencies ```pip install -r requirements.txt```
-4. Run the code ``` python load_pdf_data_to_vector_db.py```
+4. Run the code ``` python main_app.py```
 
+# Gradio: 
+## Gradio is the fastest way to demo your machine learning model with a friendly web interface so that anyone can use it, anywhere! 
+```
+pip install gradio
+```
 
 # Streamlit: 
 ## Streamlit is an open-source Python library that makes it easy to create and share interactive web applications for 
@@ -51,7 +56,7 @@ pip install langchain-google-genai
 
 # Additional Libraries
 ```commandline
-pip install tqdm pypdf
+pip install tqdm pypdf pymongo psycopg2-binary
 ```
 
 
