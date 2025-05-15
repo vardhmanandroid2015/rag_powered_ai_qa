@@ -7,7 +7,7 @@ from langchain.schema import Document # Needed for Document type hint
 from services.embedding_utils import get_text_splitter, embed_and_index_documents
 from services.summary_questions import get_full_text_from_docs, generate_document_summary, generate_suggested_questions_list
 
-def process_url_for_rag(url: str):
+def ingest_url_data_to_pinecone(url: str):
     """
     Loads content from a URL, splits it into chunks, embeds and indexes it.
     Also generates a summary and suggested questions.

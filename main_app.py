@@ -3,11 +3,14 @@
 import gradio as gr
 
 # Import high-level ingestion functions
-from ingestion.pdf_ingestion import process_uploaded_pdf
-from ingestion.url_ingestion import process_url_for_rag
+from ingestion.pdf_ingestion import ingest_pdf_data_to_pinecone
+from ingestion.url_ingestion import ingest_url_data_to_pinecone
 from ingestion.sqlite_ingestion import ingest_sqlite_data_to_pinecone
 from ingestion.postgres_ingestion import ingest_postgresql_data_to_pinecone
 from ingestion.mongodb_ingestion import ingest_mongodb_data_to_pinecone
+from ingestion.csv_ingestion import ingest_csv_data_to_pinecone
+from ingestion.api_ingestion import ingest_api_data_to_pinecone
+
 
 # Import the query engine function
 from rag_query.query_engine import answer_question_about_ingested_data # Renamed for clarity
@@ -23,7 +26,7 @@ with gr.Blocks(theme="soft", title="📄 Data Source RAG Q&A") as data_qa_ui:
     gr.Markdown(
         """
         # 📄 Data Source RAG Q&A
-        Upload a PDF, Provide URL, or Ingest from SQLite/PostgreSQL.
+        Upload a PDF, Provide URL, or Ingest from SQLite/PostgreSQL/MongoDB.
         Get a summary and suggested questions, then ask anything about its content!
         Powered by Pinecone + LangChain + Gemini Model.
         Note: Indexing from any source clears the previous index data in the namespace.
@@ -41,7 +44,7 @@ with gr.Blocks(theme="soft", title="📄 Data Source RAG Q&A") as data_qa_ui:
 
         # Link button click to processing function
         process_pdf_button.click(
-            fn=process_uploaded_pdf,
+            fn=ingest_pdf_data_to_pinecone,
             inputs=file_input,
             outputs=[pdf_status_output, pdf_summary_output, pdf_suggested_questions_output]
         )
@@ -57,7 +60,7 @@ with gr.Blocks(theme="soft", title="📄 Data Source RAG Q&A") as data_qa_ui:
 
         # Link button click to processing function
         url_process_button.click(
-            fn=process_url_for_rag,
+            fn=ingest_url_data_to_pinecone,
             inputs=url_input,
             outputs=[url_status_output, url_summary_output, url_suggested_questions_output]
         )
@@ -128,6 +131,61 @@ with gr.Blocks(theme="soft", title="📄 Data Source RAG Q&A") as data_qa_ui:
             inputs=[mongo_host_input, mongo_port_input, mongo_database_input, mongo_collection_input,
                     mongo_user_input, mongo_password_input, mongo_batch_size_input],
             outputs=[mongo_status_output, mongo_summary_output, mongo_suggested_questions_output]
+        )
+
+    # --- NEW: CSV Ingestion Section ---
+    with gr.Tab("📊 CSV Ingestion"): # Using a bar chart icon for CSV
+        gr.Markdown("### Upload CSV File for Ingestion")
+        # gr.File receives the uploaded file. Its .name attribute is the path to a temp file.
+        csv_file_input = gr.File(label="Upload CSV File", file_types=[".csv"])
+        csv_batch_size_input = gr.Number(label="Batch Size (Rows)", value=PG_DEFAULT_BATCH_SIZE, precision=0, minimum=1) # Reuse config default
+
+        process_csv_button = gr.Button("Ingest Data from CSV (Batched)")
+
+        csv_status_output = gr.Textbox(label="Processing Status", interactive=False, lines=3)
+        csv_summary_output = gr.Textbox(label="Generated Summary", interactive=False, lines=5)
+        csv_suggested_questions_output = gr.Textbox(label="Suggested Questions", interactive=False, lines=5)
+
+        process_csv_button.click(
+            fn=ingest_csv_data_to_pinecone,
+            inputs=[csv_file_input, csv_batch_size_input],
+            outputs=[csv_status_output, csv_summary_output, csv_suggested_questions_output]
+        )
+
+    # --- NEW: API Ingestion Section ---
+    with gr.Tab("🔌 API Ingestion"): # Using a plug icon for API
+        gr.Markdown("### Configure API Data Ingestion (OpenTDB Example)")
+        api_num_questions_input = gr.Number(
+            label="Number of Questions to Fetch",
+            value=API_DEFAULT_NUM_QUESTIONS, # Use default from config
+            precision=0,
+            minimum=1
+        )
+        api_category_id_input = gr.Number(
+             label="Optional Category ID (e.g., 9 for General Knowledge)",
+             value=API_DEFAULT_CATEGORY_ID, # Use default from config (can be None)
+             precision=0,
+             minimum=1,
+             # You could add a gr.Dropdown here populated with categories from the API
+             # But fetching categories adds complexity for this initial version
+        )
+        api_batch_size_input = gr.Number(
+            label="Batch Size (Documents)",
+            value=PG_DEFAULT_BATCH_SIZE, # Reuse config default
+            precision=0,
+            minimum=1
+        )
+
+        process_api_button = gr.Button("Ingest Data from API (Batched)")
+
+        api_status_output = gr.Textbox(label="Processing Status", interactive=False, lines=3)
+        api_summary_output = gr.Textbox(label="Generated Summary", interactive=False, lines=5)
+        api_suggested_questions_output = gr.Textbox(label="Suggested Questions", interactive=False, lines=5)
+
+        process_api_button.click(
+            fn=ingest_api_data_to_pinecone,
+            inputs=[api_num_questions_input, api_category_id_input, api_batch_size_input],
+            outputs=[api_status_output, api_summary_output, api_suggested_questions_output]
         )
 
     # --- Ask Questions Section ---
