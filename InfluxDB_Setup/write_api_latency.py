@@ -1,0 +1,161 @@
+# write_dummy_api_latency.py (Writing Current Data)
+
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS # Still using SYNCHRONOUS for simplicity per write
+from datetime import datetime, timedelta
+import time
+import random
+import os
+from dotenv import load_dotenv
+
+load_dotenv() # Load environment variables from .env file
+
+# --- InfluxDB Configuration ---
+# MAKE SURE THESE ARE SET IN YOUR .env FILE
+# Example .env:
+# INFLUXDB_URL=http://localhost:8086
+# INFLUXDB_TOKEN=YOUR_INFLUXDB_TOKEN
+# INFLUXDB_ORG=InfluxTutorial
+# INFLUXDB_BUCKET=rag_app_data # Or your actual bucket name
+
+url    = os.environ.get("INFLUXDB_URL", "http://localhost:8086") # Default for local testing
+token  = os.environ.get("INFLUXDB_TOKEN")
+org    = os.environ.get("INFLUXDB_ORG")
+bucket = os.environ.get("INFLUXDB_BUCKET", "rag_app_data") # Use your RAG data bucket or a specific monitoring bucket
+
+
+# Validate InfluxDB config
+if not all([url, token, org, bucket]):
+    print("❌ InfluxDB configuration (URL, TOKEN, ORG, or BUCKET) missing. Check your .env file.")
+    exit() # Exit if config is missing
+
+# Instantiate the client
+timeout_seconds = 60000
+try:
+    client = InfluxDBClient(url=url, token=token, org=org, timeout=timeout_seconds)
+    # Optional: Verify connection health
+    print("Attempting to connect and check health...")
+    health = client.health()
+    if health.status == "pass":
+        print(f"✅ Connected to InfluxDB at {url}. Health: {health.status}")
+    else:
+        print(f"❌ InfluxDB health check failed: {health.message}")
+        client.close()
+        exit()
+    print(f"✅ Initialized InfluxDB client for {url}/{bucket}")
+
+except Exception as e:
+    print(f"❌ Failed to initialize InfluxDB client: {e}")
+    # Ensure client is closed even if health check is skipped
+    if 'client' in locals() and client:
+        client.close()
+    exit()
+
+# Instantiate a write client
+# We use SYNCHRONOUS for simplicity per write in this example.
+write_api = client.write_api(write_options=SYNCHRONOUS)
+
+
+# --- Data Generation Parameters ---
+# spike_interval_minutes: Time between the start of consecutive spikes.
+# spike_duration_minutes: Duration of each spike.
+# spike_start_offset_minutes: Delay before the first spike starts after the script begins.
+# Conversions: Converts minutes to seconds for internal calculations.
+
+measurement_name = "api_latency"
+service_name = "payment"
+endpoint_name = "/process" # Specific endpoint
+normal_latency_range = (50, 150) # Normal latency in ms
+spike_latency_range = (400, 600) # Spike latency in ms
+interval_seconds = 5 # How often to generate and write a data point
+
+# Simulate a spike based on elapsed intervals since script start
+spike_start_after_intervals = 10 # Spike starts after 10 intervals (50 seconds)
+spike_duration_intervals = 6    # Spike lasts for 6 intervals (30 seconds)
+
+
+print(f"Starting live data generation for '{measurement_name}' on service '{service_name}'...")
+print(f"Writing a point every {interval_seconds} seconds.")
+print(f"Spike simulation will start after {spike_start_after_intervals * interval_seconds} seconds and last for {spike_duration_intervals * interval_seconds} seconds.")
+
+
+total_points_generated = 0
+points_written_success = 0
+interval_counter = 0 # Counter to track intervals for spike simulation
+
+try:
+    # --- Generate and Write Data Continuously ---
+    while True:
+        """
+        time_into_spike_cycle: Calculates the time elapsed in the current spike cycle.
+        is_in_spike          : Determines whether the current time falls within a spike period.
+        Spike Period         : Generates a random latency value within the spike range, ensuring it's above the normal range.
+        Normal Period        : Generates a latency value using a Gaussian distribution centered within the normal range, clamped to stay within bounds.
+        """
+
+        current_datetime = datetime.now() # Get the current datetime
+
+        # Check if we are in the spike period based on the interval counter
+        is_in_spike = (spike_start_after_intervals <= interval_counter < spike_start_after_intervals + spike_duration_intervals)
+
+        # Determine latency based on whether we are in the spike period
+
+
+
+        if is_in_spike:
+            # Generate latency within the spike range
+            latency_value = random.uniform(*spike_latency_range)
+            latency_value = max(latency_value, normal_latency_range[1] + 10) # Ensure spike is above normal range
+            print(f"{current_datetime.isoformat()}Z - Simulating spike: {latency_value:.2f}ms")
+        else:
+            # Generate latency within the normal range
+            mean = (normal_latency_range[0] + normal_latency_range[1]) / 2
+            std_dev = (normal_latency_range[1] - normal_latency_range[0]) / 6 # Rule of thumb: 6 std devs cover the range
+            latency_value = random.gauss(mean, std_dev)
+            latency_value = max(normal_latency_range[0], min(latency_value, normal_latency_range[1])) # Clamp to normal range
+            print(f"{current_datetime.isoformat()}Z - Normal data: {latency_value:.2f}ms")
+
+
+        # Create a Point object - DO NOT set a time here!
+        # InfluxDB will assign the server's current timestamp.
+        point = Point(measurement_name) \
+            .tag(key="service", value=service_name) \
+            .tag(key="endpoint", value=endpoint_name) \
+            .field(field="value", value=float(latency_value))
+
+        # Write the individual point synchronously
+        try:
+            write_api.write(bucket=bucket, org=org, record=point)
+            # print(f"  Wrote point successfully.") # Uncomment for verbose write confirmation
+            points_written_success += 1
+        except Exception as e:
+            print(f"  ❌ Error writing point: {e}")
+
+        total_points_generated += 1
+        interval_counter += 1
+
+        # Wait for the next interval
+        time.sleep(interval_seconds)
+
+except KeyboardInterrupt:
+    # Handle Ctrl+C gracefully
+    print("\nCtrl+C detected. Stopping.")
+
+except Exception as e:
+    print(f"\nAn unexpected error occurred: {e}")
+
+
+finally:
+    # --- Cleanup ---
+    print("\nCleaning up InfluxDB client resources...")
+    try:
+        if 'write_api' in locals() and write_api:
+            write_api.close()
+        if 'client' in locals() and client:
+            client.close()
+        print("InfluxDB client and write API closed.")
+    except Exception as e:
+         print(f"Error closing client or API: {e}")
+
+    print(f"\nTotal points attempted to generate: {total_points_generated}")
+    print(f"Total points written successfully: {points_written_success}")
