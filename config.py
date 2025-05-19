@@ -42,7 +42,6 @@ if not GOOGLE_API_KEY:
 # For PostgreSQL Ingestion defaults (can be overridden in UI)
 PG_DEFAULT_BATCH_SIZE = 100
 
-
 # --- API Configuration (Open Trivia Database Example) ---
 OPENTDB_API_BASE_URL = "https://opentdb.com/api.php"
 API_DEFAULT_NUM_QUESTIONS = 20 # Default number of questions to fetch

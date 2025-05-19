@@ -1,27 +1,3 @@
-# rag_app/ingestion/api_ingestion.py
-"""
-Imports: Adds requests for API calls and html for decoding.
-ingest_api_data_to_pinecone function:
-Takes num_questions, category_id, and batch_size as inputs.
-Includes robust input validation and type conversion.
-Constructs the OpenTDB API URL and parameters dictionary.
-Uses requests.get() to fetch data. response.raise_for_status() checks for standard HTTP errors.
-Parses the JSON response using response.json().
-Includes a specific check for the response_code returned by the OpenTDB API to catch API-side errors (like no results for the criteria).
-Iterates through the results list from the API.
-HTML Decoding: Uses html.unescape() to clean up the question and answer strings from the API, which often contain HTML entities.
-Creates page_content by combining the question and the correct answer.
-Creates metadata including source: api, api_source: OpenTDB, and details like category and difficulty from the API response.
-Creates LangChain Document objects.
-Batching: Manually iterates through the docs_to_process list in batches of batch_size.
-Splits each batch into chunks using your existing text_splitter.
-Upserts the batch_chunks to Pinecone.
-Namespace Clearing: Keeps the clear_pinecone_namespace() call, meaning this will clear your Pinecone index before loading API data. Adjust if you want to add instead of replace.
-Generates processing status, summary, and suggested questions from the first batch of documents.
-Includes detailed exception handling for API requests and general errors.
-Returns status, summary, and suggested questions strings.
-"""
-
 import requests
 import html # To decode HTML entities in API response
 from langchain.schema import Document

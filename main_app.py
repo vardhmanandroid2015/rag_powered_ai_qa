@@ -12,6 +12,7 @@ from ingestion.csv_ingestion import ingest_csv_data_to_pinecone
 from ingestion.api_ingestion import ingest_api_data_to_pinecone
 
 
+
 # Import the query engine function
 from rag_query.query_engine import answer_question_about_ingested_data # Renamed for clarity
 
@@ -187,6 +188,7 @@ with gr.Blocks(theme="soft", title="📄 Data Source RAG Q&A") as data_qa_ui:
             inputs=[api_num_questions_input, api_category_id_input, api_batch_size_input],
             outputs=[api_status_output, api_summary_output, api_suggested_questions_output]
         )
+
 
     # --- Ask Questions Section ---
     with gr.Tab("🧠 Ask Questions"):
